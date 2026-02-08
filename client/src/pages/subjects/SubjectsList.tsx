@@ -21,6 +21,25 @@ import { useMemo, useState } from "react";
 function SubjectsList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("any");
+  const searchFilters = searchQuery
+    ? [
+        {
+          field: "name",
+          operator: "contains" as const,
+          value: searchQuery,
+        },
+      ]
+    : [];
+  const departmentFilters =
+    selectedDepartment === "all"
+      ? []
+      : [
+          {
+            field: "department",
+            operator: "eq" as const,
+            value: selectedDepartment,
+          },
+        ];
 
   const subjectTable = useTable<Subject>({
     columns: useMemo<ColumnDef<Subject>[]>(
@@ -30,9 +49,37 @@ function SubjectsList() {
           accessorKey: "code",
           size: 100,
           header: () => <p className="column-title ml-2">Code</p>,
-          cell: ({ getValue }) => {
-            <Badge>{getValue<string>()}</Badge>;
-          },
+          cell: ({ getValue }) => <Badge>{getValue<string>()}</Badge>,
+        },
+        {
+          id: "name",
+          accessorKey: "name",
+          size: 200,
+          header: () => <p className="column-title">Name</p>,
+          cell: ({ getValue }) => (
+            <span className="text-foreground">{getValue<string>()}</span>
+          ),
+          filterFn: "includesString",
+        },
+        {
+          id: "department",
+          accessorKey: "department",
+          size: 150,
+          header: () => <p className="column-title">Department</p>,
+          cell: ({ getValue }) => (
+            <Badge variant="secondary">{getValue<string>()}</Badge>
+          ),
+          filterFn: "includesString",
+        },
+        {
+          id: "description",
+          accessorKey: "description",
+          size: 300,
+          header: () => <p className="column-title">Description</p>,
+          cell: ({ getValue }) => (
+            <span className="truncate line-clamp-2">{getValue<string>()}</span>
+          ),
+          filterFn: "includesString",
         },
       ],
       [],
@@ -40,8 +87,12 @@ function SubjectsList() {
     refineCoreProps: {
       resource: "subjects",
       pagination: { pageSize: 10, mode: "server" },
-      filters: {},
-      sorters: {},
+      filters: {
+        permanent: [...departmentFilters, ...searchFilters],
+      },
+      sorters: {
+        initial: [{ field: "id", order: "desc" }],
+      },
     },
   });
 
@@ -85,11 +136,11 @@ function SubjectsList() {
             </Select>
 
             <CreateButton />
-
-            <DataTable table={subjectTable} />
           </div>
         </div>
       </div>
+
+      <DataTable table={subjectTable} />
     </ListView>
   );
 }
